@@ -1,0 +1,221 @@
+# Stats Assignment
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and 
+pressing *Cmd+Shift+Enter* for Mac or *Ctrl+Shift+Enter* for Linux/Windows. 
+##Jake Joseph
+##CS 569
+
+## Part 1:  Implementing statistical tests
+
+In this question, you are asked to implement two of the simpler statistical tests "by hand" (i.e. not by calling R functions such as t.test and aov). The purpose of this question is to demonstrate your understand of what these tests are doing, and to give you some practice with using R. 
+
+### The paired t-test
+
+Paired t-test: Implement a function that runs a paired t-test in R and computes the degrees of freedom, number, t statistic, and p-value. The function should follow the following format, where x and y are equal-sized vectors. (Note that a paired t-test is actually simpler to compute than a regular t-test, since you can do z=x-y and then check if z has a mean of 0.)
+
+Insert you code in the chunk below.
+
+```{r}
+
+paired.t.test <- function(x,y) {
+ # your implementation goes here
+  df <- x - y
+  meand <- mean(df)
+  sd <- sd(df)
+  se <- sd / sqrt(length(x))
+  tvalue <- meand/se
+  pvalue <- 2 * pt(-abs(tvalue),length(x) - 1)
+ return(list(df= length(x) - 1,t.statistic=tvalue,p.value=pvalue))
+}
+
+```
+
+Here is an example usage of the function. 
+
+```{r}
+x <- rnorm(20)
+y <- rnorm(20)
+paired.t.test(x,y)
+```
+
+You can also compare with R's default implementation of T-test
+
+```{r}
+t.test(x, y, paired = TRUE)
+```
+
+### ANOVA
+
+ANOVA: Implement a function that computes a p-value for an ANOVA for a one-factor design with K alternatives. Use the following format, where scores is a vector that contains the values for the dependent variable, and groups is a vector of factors.
+
+
+```{r}
+
+ my.anova <- function(scores,groups) {
+ # code goes here
+  pl = PlantGrowth
+  
+  #degrees of freedom for group and total
+  dfb = length(unique(PlantGrowth$group)) - 1
+  dfw = length(unique(PlantGrowth$weight)) - dfb
+  
+  #mean of all groups
+  mctrl <- mean(pl[pl$group == "ctrl", "weight"])
+  mtrt2 <- mean(pl[pl$group == "trt2", "weight"])
+  mtrt1 <- mean(pl[pl$group == "trt1", "weight"])
+  
+  G = mean(pl[,"weight"])
+  
+  #Sums of Squares for total,bg and within-group
+  sst <- sum((pl$weight - G) * (pl$weight - G)) 
+  ssb <- ((mctrl - G)^2 *10 + (mtrt1 - G)^2 * 10   + (mtrt2 - G)^2 * 10)
+  ssw <- sst-ssb
+  
+  msb = ssb/dfb
+  mswith = ssw/dfw
+
+  f.stat = msb/mswith
+  p.val <- 2*pf(f.stat,dfw,dfb,lower.tail = F)
+ 
+ return(list(ssto=sst,ssbg=ssb,sswg=ssw,df1=dfb,df2=dfw,msbg=msb,mswg=mswith,f.statistic=f.stat,p.value=p.val))
+}
+
+
+my.anova(PlantGrowth$weight, unique(PlantGrowth$group))
+
+
+
+
+```
+
+
+Generate some random data and run your function and the `aov` function on the same data to demonstrate that you get the same results. Note that the `gl` function is useful for generating the groups vector.
+
+## Part 2: Using R's statistical tests
+
+In this question, you'll get some practice using R's built-in statistical tests.
+
+# T-tests
+Download 2.1.csv and put in the same folder as your notebook file. This contains simulated data for two methods for inspecting source code for defects. One method uses a checklist, and the other is a method called perspective-based reading (PBR). For each question, report the p-value and state whether the result is statistically significant at the p<.05 level.
+
+a) Perform a two-tailed t-test to determine if the results are statistically significant (assume the variances are equal).
+
+```{r}
+data <- read.csv(file="2.1.csv", head = TRUE, sep = ",")
+
+t.test(data$pbr, data$checklist,var.eq=T)
+# code goes here
+
+```
+
+b) Perform a one-tailed t-test (assume PBR<checklist, variances are equal) and check if results are statistically significant.
+
+```{r}
+# code goes here
+data <- read.csv(file="2.1.csv", head = TRUE, sep = ",")
+t.test(data$pbr,data$checklist, alternative = "less", mu = 0,conf=0.95,var.eq=T,paired=F)
+
+```
+
+c)  Assume the study was a randomized block design (subjects were paired together by experience level and comparisons are done within pairs) and use a paired (two-tailed) t-test to check if the results are statistically significant.
+
+```{r}
+# code goes here
+data <- read.csv(file="2.1.csv", head = TRUE, sep = ",")
+
+t.test(data$pbr,data$checklist, alternative = "two.sided", mu = 0,conf=0.95,var.eq=T,paired=T)
+```
+
+d) Re-do a,b,c using non-parametric tests instead (Wilcoxon tests, also known as Mann-Whitney) and compare the p-values to what you originally obtained.
+
+```{r}
+# code goes here for all 3 cases
+data <- read.csv(file="2.1.csv", head = TRUE, sep = ",")
+
+wilcox.test(data$pbr,data$checklist)
+
+wilcox.test(data$pbr,data$checklist, alternative = "less")
+
+wilcox.test(data$pbr,data$checklist , paired=T)
+```
+
+# ANOVAs
+
+For each ANOVA, make sure you report the full ANOVA table.
+
+a) Use 2.2a.csv. This file contains results of a study that compares Java, Python, and Ruby code based on the size of the programs in source (i.e. non-blank, non-commented) lines of code. Perform an ANOVA to determine whether there is an effect due to programming language.
+
+```{r}
+# code goes here
+data <- read.csv(file="2.2a.csv",head = TRUE, sep = ",")
+
+aov(sloc ~ lang, data)
+
+```
+
+b) Use 2.2b.csv. This file contains results of a subsequent study which measured the programming time (in hours) required to solve a program in Java, Python, and Ruby. This study used blocking: each subject solved the problem three times, and all subjects solved the problem in the same order (Java, then Python, then Ruby). Perform an ANOVA to determine whether there is an effect due to programming language.
+
+```{r}
+# code goes here
+data <- read.csv(file="2.2b.csv",head = TRUE, sep = ",")
+
+anova(aov(lm(times ~ (block+lang),data)))
+```
+
+c) Use 2.2c.csv. This file contains results of a replication of the study from b), which uses a crossover design to control for ordering. Each subject solved the problem in all three languages, but in each subject solved them in a different order. Perform an ANOVA to determine whether there is an effect due to programming language.
+
+```{r}
+# code goes here
+data <- read.csv(file="2.2c.csv",head = TRUE, sep = ",")
+
+anova(aov(lm(times ~(block+lang),data)))
+```
+
+d) Use 2.2d.csv. This file contains simulated results from an experiment that compared development time for Java, Python and Ruby, for subjects with low experience and high experience. Perform an ANOVA and identify which factors (language, experience) had a statistically significant effect. Also specify whether the interaction between programming language and experience was statistically significant or not.
+
+```{r}
+# code goes here
+data <- read.csv(file="2.2d.csv",head = TRUE, sep = ",")
+
+anova(aov(lm(times ~(lang+exp),data)))
+
+```
+
+# Part 3: Data analysis of an experiment
+
+In this question, you'll analyze the raw data from an experiment and write up the results.
+
+The data is from an experiment to test whether statically typed languages (e.g. Java) or dynamically typed languages (e.g. Python) require more programming effort. The study evaluates the languages on two problems, a "small" problem and a "large" problem, to see if the results change based on the size of the problem. The study is a factorial design. The raw data from the experiment can be downloaded here: 2.3.csv.
+
+Analyze the data and write up a short "results" section (as if it were a part of a paper) with your analysis of the data. This section should contain:
+* Box plots to show the raw data
+* Analysis of variance tables to determine if there are any interactions
+* Results of pairwise t-tests
+* Confidence interval plots corresponding to the t-tests.
+* Effect sizes for programming language for the "small" problem and for the "large" problem.
+* Generate an interaction diagram to visually demonstrate the interaction
+* A power analysis to determine the minimum amount of subjects you would need if you wanted to run this study again.(You do not have to use R for this, you can use the Lenth power analysis tool. However, there is an optional R package called "pwr" that does power analysis)
+* I am not looking for a specific format, use your judgement about the best way to present this data to convey the results to a reader. 
+
+```{r}
+# Code for analysis goes here.
+import <- read.csv("2.3.csv")
+
+
+
+boxplot(import$times ~ import$lang + import$size, import)
+stripchart(times ~ lang + size, method ="jitter", jitter=0.05, vertical=TRUE, add=TRUE ,data=import)
+
+anova(lm(import$times ~ (import$lang + import$size),import))
+
+t1=t.test(import$times ~ import$size, import)
+t2=t.test(import$times ~ import$lang, import)
+plot(t1$conf.int,t2$conf.int, type = "l")
+
+interaction.plot(import$lang, import$size, import$times)
+print(power.t.test(t1$conf.int,t2$conf.int))
+
+```
+
